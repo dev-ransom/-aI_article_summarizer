@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { copy, linkIcon, tick, loader } from '../assets'
 import { useLazyGetSummaryQuery } from '../services/article'
+
 const Demo = () => {
   const [article, setArticle] = useState({
     url: '',
@@ -8,36 +9,49 @@ const Demo = () => {
   })
 
   const [allArticles, setAllArticles] = useState([])
+  const [copiedUrl, setCopiedUrl] = useState(false)
+  const [copiedSummary, setCopiedSummary] = useState(false)
   const [getSummary, { error, isFetching }] = useLazyGetSummaryQuery()
 
   useEffect(() => {
-    const articleFromLocalStorage = JSON.parse(localStorage.getItem('articles'))
-
-    if (articleFromLocalStorage) {
-      setAllArticles(articleFromLocalStorage)
+    const articlesFromLocalStorage = JSON.parse(
+      localStorage.getItem('articles'),
+    )
+    if (articlesFromLocalStorage) {
+      setAllArticles(articlesFromLocalStorage)
     }
   }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const { data } = await getSummary({
-      articleUrl: article.url,
-    })
+    const { data } = await getSummary({ articleUrl: article.url })
     if (data?.summary) {
       const newArticle = { ...article, summary: data.summary }
-      const updatedArticle = [newArticle, ...allArticles]
+      const updatedArticles = [newArticle, ...allArticles]
       setArticle(newArticle)
-      setAllArticles(updatedArticle)
-      localStorage.setItem('articles', JSON.stringify(updatedArticle))
+      setAllArticles(updatedArticles)
+      localStorage.setItem('articles', JSON.stringify(updatedArticles))
     }
   }
+
+  const handleCopyUrl = (url) => {
+    navigator.clipboard.writeText(url)
+    setCopiedUrl(true)
+    setTimeout(() => setCopiedUrl(false), 3000)
+  }
+
+  const handleCopySummary = (summary) => {
+    navigator.clipboard.writeText(summary)
+    setCopiedSummary(true)
+    setTimeout(() => setCopiedSummary(false), 3000)
+  }
+
   return (
     <section className="max-w-xl mt-16 w-full">
       {/* search */}
       <div className="flex flex-col w-full gap-2">
         <form
-          action=""
-          className="relative flex justify-center items-center "
+          className="relative flex justify-center items-center"
           onSubmit={handleSubmit}
         >
           <img
@@ -67,9 +81,9 @@ const Demo = () => {
               onClick={() => setArticle(item)}
               className="link_card"
             >
-              <div className="copy_btn">
+              <div className="copy_btn" onClick={() => handleCopyUrl(item.url)}>
                 <img
-                  src={copy}
+                  src={copiedUrl ? tick : copy}
                   alt="copy_icon"
                   className="h-[40%] w-[40%] object-contain"
                 />
@@ -104,7 +118,21 @@ const Demo = () => {
                 Article <span className="blue_gradient">Summary</span>
               </h2>
               <div className="summary_box">
-                <p>{article.summary}</p>
+                <div className="w-full flex justify-end items-end">
+                  <div
+                    className="copy_btn"
+                    onClick={() => handleCopySummary(article.summary)}
+                  >
+                    <img
+                      src={copiedSummary ? tick : copy}
+                      alt="copy_icon"
+                      className="h-[40%] w-[40%] object-contain cursor-pointer"
+                    />
+                  </div>
+                </div>
+                <p className="font-inter font-medium text-gray-700 text-sm">
+                  {article.summary}
+                </p>
               </div>
             </div>
           )
